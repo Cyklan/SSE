@@ -4,7 +4,7 @@ import { useStateRef } from "./useStateRef";
 
 function App() {
   const sourceRef = useRef<EventSource | null>(null);
-  const [url, setUrl] = useState("http://localhost:3000/sse");
+  const [url, setUrl] = useState("https://sse.fahle.dev/sse");
   const [messages, setMessages] = useStateRef<Message[]>([]);
 
   function addMessage(message: Message) {
