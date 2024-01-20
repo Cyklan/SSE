@@ -1,46 +1,93 @@
-import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import { useRef, useState } from "react";
+import { type Message, TextLine } from "./TextLine";
+import { useStateRef } from "./useStateRef";
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [source, setSource] = useState<EventSource | null>(null)
+  const sourceRef = useRef<EventSource | null>(null);
+  const [url, setUrl] = useState("http://localhost:3000/sse");
+  const [messages, setMessages] = useStateRef<Message[]>([]);
 
-  useEffect(() => {
-    if (source) {
-      return
+  function addMessage(message: Message) {
+    setMessages((prev) => [...prev, message]);
+  }
+
+  function open() {
+    if (sourceRef.current) {
+      close(false);
     }
-    const eventSource = new EventSource('http://localhost:3000/sse')
-    eventSource.onmessage = (event) => {
-      console.log(event)
+
+    const newSource = new EventSource(url);
+    newSource.onopen = () => {
+      // todo: add open info message
+      addMessage({
+        text: `Connected to: ${url}`,
+        type: "CONNECTED",
+      });
+    };
+
+    newSource.onerror = () => {
+      addMessage({
+        text: `Error with connection to server: ${url}`,
+        type: "ERROR",
+      });
+    };
+
+    newSource.onmessage = (e) => {
+      addMessage({
+        text: e.data,
+        type: "MESSAGE",
+      });
+    };
+
+    sourceRef.current = newSource;
+  }
+
+  function close(flag = true) {
+    console.log("close", flag);
+    if (!sourceRef.current) return;
+    if (sourceRef.current.readyState === EventSource.CLOSED) return;
+
+    sourceRef.current.close();
+    if (flag) {
+      sourceRef.current = null;
     }
-    setSource(eventSource)
-  }, [])
+
+    addMessage({
+      text: `Disconnected from: ${url}`,
+      type: "DISCONNECTED",
+    });
+  }
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+    <div className="w-screen h-screen overflow-hidden p-8">
+      <nav>
+        <h1 className="text-4xl font-semibold">SSEasy</h1>
         <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+          <span className="font-bold">THE</span> server-sent events test client
         </p>
+      </nav>
+      <fieldset className="border-base-content border-2 p-4 pt-1 flex gap-4">
+        <legend>Connection</legend>
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Connection URL"
+          className="input input-bordered"
+        />
+        <button className="btn btn-primary" onClick={open}>
+          Open
+        </button>
+        <button className="btn btn-primary" onClick={() => close()}>
+          Close
+        </button>
+      </fieldset>
+      <div className="mockup-code rounded-none h-4/5 mt-4">
+        {messages.map((message, index) => (
+          <TextLine key={`message-${url}-${index}`} message={message} />
+        ))}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
