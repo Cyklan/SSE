@@ -1,11 +1,17 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type Message, TextLine } from "./TextLine";
 import { useStateRef } from "./useStateRef";
 
 function App() {
   const sourceRef = useRef<EventSource | null>(null);
+  const messageBoxRef = useRef<HTMLDivElement | null>(null);
   const [url, setUrl] = useState("https://sse.fahle.dev/sse");
   const [messages, setMessages] = useStateRef<Message[]>([]);
+
+  useEffect(() => {
+    if (!messageBoxRef.current) return;
+    messageBoxRef.current.scrollTop = messageBoxRef.current.scrollHeight;
+  }, [messages]);
 
   function addMessage(message: Message) {
     setMessages((prev) => [...prev, message]);
@@ -66,7 +72,7 @@ function App() {
           <span className="font-bold">THE</span> server-sent events test client
         </p>
       </nav>
-      <fieldset className="border-base-content border-2 p-4 pt-1 flex gap-4">
+      <fieldset className="border-base-content border-2 p-4 pt-1 flex gap-4 flex-wrap">
         <legend>Connection</legend>
         <input
           value={url}
@@ -81,7 +87,10 @@ function App() {
           Close
         </button>
       </fieldset>
-      <div className="mockup-code rounded-none h-4/5 mt-4">
+      <div
+        ref={messageBoxRef}
+        className="mockup-code rounded-none md:h-4/5 h-2/3 mt-4 overflow-y-auto scroll-smooth"
+      >
         {messages.map((message, index) => (
           <TextLine key={`message-${url}-${index}`} message={message} />
         ))}
